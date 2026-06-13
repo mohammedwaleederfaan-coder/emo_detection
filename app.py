@@ -230,7 +230,12 @@ def load_model(ckpt_path):
 # ─────────────────────────────────────────
 @st.cache_resource
 def load_spacy():
-    return spacy.load("en_core_web_sm", disable=["parser", "ner", "textcat"])
+    import subprocess, sys
+    try:
+        return spacy.load("en_core_web_sm", disable=["parser", "ner", "textcat"])
+    except OSError:
+        subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"], check=True)
+        return spacy.load("en_core_web_sm", disable=["parser", "ner", "textcat"])
 
 
 # ─────────────────────────────────────────
