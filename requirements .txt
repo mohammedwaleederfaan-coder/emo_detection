@@ -1,0 +1,10 @@
+torch
+pandas
+numpy
+scikit-learn
+datasets
+spacy
+gensim
+streamlit
+matplotlib
+seaborn
