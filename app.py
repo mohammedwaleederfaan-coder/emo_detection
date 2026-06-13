@@ -270,91 +270,72 @@ def predict(text, model, nlp, word2idx, device):
 
 
 # ─────────────────────────────────────────
+# ⚙️  CONFIG — change this to your model path
+# ─────────────────────────────────────────
+MODEL_PATH = "emotion_model.pth"   # ← غير الـ path هنا
+
+# ─────────────────────────────────────────
 # UI
 # ─────────────────────────────────────────
+import os
+
 st.markdown("<h1>Emotion Detector</h1>", unsafe_allow_html=True)
 st.markdown(
     '<p class="subtitle">BiLSTM · Word2Vec · dair-ai/emotion</p>',
     unsafe_allow_html=True
 )
 
-# ── Model upload ──
-uploaded = st.file_uploader(
-    "Upload your `emotion_model.pth` checkpoint",
-    type=["pth"],
-    label_visibility="collapsed",
-)
-st.markdown('<p class="hint">↑ drag & drop your emotion_model.pth here</p>', unsafe_allow_html=True)
+if not os.path.exists(MODEL_PATH):
+    st.error(f"Model not found at: `{MODEL_PATH}`\n\nغير الـ `MODEL_PATH` في أول الملف للـ path الصح.")
+    st.stop()
 
-if uploaded:
-    # Save to a temp path so torch.load can open it
-    import tempfile, os
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pth") as f:
-        f.write(uploaded.read())
-        tmp_path = f.name
+try:
+    model, word2idx, device = load_model(MODEL_PATH)
+    nlp = load_spacy()
 
-    try:
-        model, word2idx, device = load_model(tmp_path)
-        nlp = load_spacy()
+    st.markdown(
+        f'<span class="badge">device: {"cuda" if device.type=="cuda" else "cpu"}</span>'
+        f'<span class="badge">vocab: {len(word2idx):,}</span>',
+        unsafe_allow_html=True,
+    )
+    st.markdown("<br>", unsafe_allow_html=True)
 
-        st.markdown(
-            f'<span class="badge">device: {"cuda" if device.type=="cuda" else "cpu"}</span>'
-            f'<span class="badge">vocab: {len(word2idx):,}</span>',
-            unsafe_allow_html=True,
-        )
-        st.markdown("<br>", unsafe_allow_html=True)
+    # ── Text input ──
+    text_input = st.text_area(
+        "Enter text",
+        placeholder="Type something and see how it feels…",
+        height=130,
+        label_visibility="collapsed",
+    )
 
-        # ── Text input ──
-        text_input = st.text_area(
-            "Enter text",
-            placeholder="Type something and see how it feels…",
-            height=130,
-            label_visibility="collapsed",
-        )
+    if st.button("Detect emotion"):
+        if not text_input.strip():
+            st.warning("Please type something first.")
+        else:
+            with st.spinner("Thinking…"):
+                top_idx, probs = predict(text_input, model, nlp, word2idx, device)
 
-        if st.button("Detect emotion"):
-            if not text_input.strip():
-                st.warning("Please type something first.")
-            else:
-                with st.spinner("Thinking…"):
-                    top_idx, probs = predict(text_input, model, nlp, word2idx, device)
+            name, icon, color = EMOTIONS[top_idx]
+            confidence = probs[top_idx]
 
-                name, icon, color = EMOTIONS[top_idx]
-                confidence = probs[top_idx]
+            st.markdown(f"""
+            <div class="result-card">
+                <div class="emotion-label" style="color:{color};">{icon} {name.capitalize()}</div>
+                <div class="confidence-text">confidence: {confidence:.1%}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-                st.markdown(f"""
-                <div class="result-card">
-                    <div class="emotion-label" style="color:{color};">{icon} {name.capitalize()}</div>
-                    <div class="confidence-text">confidence: {confidence:.1%}</div>
-                </div>
-                """, unsafe_allow_html=True)
+            st.markdown("---")
 
-                st.markdown("---")
+            for idx in range(6):
+                ename, eicon, _ = EMOTIONS[idx]
+                pct = float(probs[idx])
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.markdown(f"**{eicon} {ename}**")
+                    st.progress(pct)
+                with col2:
+                    st.markdown(f"<div style='padding-top:1.6rem; font-family:monospace; color:#9ca3af;'>{pct:.1%}</div>", unsafe_allow_html=True)
 
-                for idx in range(6):
-                    ename, eicon, _ = EMOTIONS[idx]
-                    pct = float(probs[idx])
-                    col1, col2 = st.columns([3, 1])
-                    with col1:
-                        st.markdown(f"**{eicon} {ename}**")
-                        st.progress(pct)
-                    with col2:
-                        st.markdown(f"<div style='padding-top:1.6rem; font-family:monospace; color:#9ca3af;'>{pct:.1%}</div>", unsafe_allow_html=True)
-
-    except Exception as e:
-        st.error(f"Failed to load model: {e}")
-    finally:
-        try:
-            os.unlink(tmp_path)
-        except Exception:
-            pass
-else:
-    # Placeholder state
-    st.markdown("""
-    <div class="result-card" style="text-align:center; padding: 2.5rem;">
-        <div style="font-size:2.5rem; margin-bottom:0.5rem;">🧠</div>
-        <div style="color:#4b5563; font-family:'JetBrains Mono',monospace; font-size:0.85rem;">
-            Upload your checkpoint to get started
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+except Exception as e:
+    st.error(f"Failed to load model: {e}")
