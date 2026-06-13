@@ -24,7 +24,7 @@ This project fine-tunes a BiLSTM model on the [`dair-ai/emotion`](https://huggin
 ```
 emotion-detection/
 │
-├── emotion_classifier.ipynb  # Full training pipeline
+├── emotion_classifier.py   # Full training pipeline
 ├── emotion_app.py          # Streamlit inference app
 ├── emotion_model.pth       # Saved model checkpoint (generated after training)
 └── README.md
@@ -75,7 +75,7 @@ Linear(64  → 6)
 ### 1. Install dependencies
 
 ```bash
-pip install torch pandas numpy scikit-learn datasets spacy gensim streamlit matplotlib seaborn
+pip install -r requirements.txt
 python -m spacy download en_core_web_sm
 ```
 
@@ -120,6 +120,8 @@ Upload `emotion_model.pth` in the app, type any text, and click **Detect emotion
 
 - The model tends to **over-predict Sadness and Fear** due to class imbalance in the dataset.
 - Word2Vec produces **static embeddings** — it doesn't capture context (e.g., "not happy" vs "happy" map to similar vectors).
+
+
 
 
 
